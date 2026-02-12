@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: edda-db
+    environment:
+      POSTGRES_USER: edda
+      POSTGRES_PASSWORD: edda_dev_password
+      POSTGRES_DB: edda
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edda"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: edda-backend
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://edda:edda_dev_password@db:5432/edda?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@edda.local}
+      PORT: 8080
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/scripts:/app/scripts:ro
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: edda-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8080/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

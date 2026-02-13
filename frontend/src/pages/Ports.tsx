@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import './Ports.css';
 
@@ -13,10 +12,10 @@ interface PortAggregate {
   service_version?: string;
   reviewed: boolean;
   host_count: number;
+  finding_count: number;
 }
 
 const Ports: React.FC = () => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [ports, setPorts] = useState<PortAggregate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,28 +55,6 @@ const Ports: React.FC = () => {
 
   return (
     <div className="ports-page">
-      <header className="ports-header">
-        <div className="container">
-          <div className="header-content">
-            <h1>Edda - Ports</h1>
-            <div className="header-actions">
-              <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
-                Dashboard
-              </button>
-              {user?.is_admin && (
-                <button onClick={() => navigate('/admin')} className="btn btn-secondary">
-                  Admin
-                </button>
-              )}
-              <span>Welcome, {user?.email}</span>
-              <button onClick={logout} className="btn btn-secondary">
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="container">
         <div className="ports-content">
           <div className="page-header">
@@ -132,6 +109,7 @@ const Ports: React.FC = () => {
                     <th>Product</th>
                     <th>Version</th>
                     <th>Status</th>
+                    <th>Findings</th>
                     <th>Hosts</th>
                     <th>Actions</th>
                   </tr>
@@ -148,6 +126,11 @@ const Ports: React.FC = () => {
                       <td>
                         <span className={`status-badge ${p.reviewed ? 'reviewed' : 'unreviewed'}`}>
                           {p.reviewed ? 'Reviewed' : 'Unreviewed'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`finding-badge ${p.finding_count > 0 ? 'has-findings' : ''}`} title={`${p.finding_count} finding(s)`}>
+                          {p.finding_count > 0 ? p.finding_count : '—'}
                         </span>
                       </td>
                       <td>{p.host_count}</td>

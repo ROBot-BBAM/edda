@@ -9,6 +9,36 @@
   margin-bottom: 30px;
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-content h1 {
+  margin: 0;
+  color: #333;
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .host-info-card {
   margin-bottom: 30px;
 }
@@ -41,11 +71,52 @@
   color: #333;
 }
 
+/* Host-level notes: show Add Note icon on hover (same as table row actions) */
+.host-notes-actions .row-actions {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.host-notes-actions:hover .row-actions {
+  opacity: 1;
+}
+
 .ip-address {
   font-family: monospace;
   font-weight: 500;
   font-size: 16px;
 }
+
+.section-actions {
+  margin: 0 0 12px;
+}
+
+.section-actions .btn {
+  margin-right: 8px;
+}
+
+.finding-badge {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  background-color: #e9ecef;
+  color: #6c757d;
+}
+.finding-badge.has-findings {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+.note-badge { display: inline-block; min-width: 1.5em; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; text-align: center; background-color: #e9ecef; color: #6c757d; }
+.note-badge.has-notes { background-color: #cce5ff; color: #004085; }
+.findings-table .finding-title { font-weight: 500; }
+.severity-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+.severity-badge.severity-low { background: #e7f3ff; color: #0c5460; }
+.severity-badge.severity-medium { background: #fff3cd; color: #856404; }
+.severity-badge.severity-high { background: #f8d7da; color: #721c24; }
+.severity-badge.severity-critical { background: #721c24; color: #fff; }
 
 .section {
   margin-bottom: 30px;

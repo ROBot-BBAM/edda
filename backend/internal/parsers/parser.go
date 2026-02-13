@@ -33,6 +33,10 @@ func ParseScanFile(scanFile *database.ScanFile, db *database.DB) error {
 		err = ParseFFufJSON(scanFile.StoragePath.String, scanFile.ID, db)
 	case "ffuf_csv":
 		err = ParseFFufCSV(scanFile.StoragePath.String, scanFile.ID, db)
+	case "postman_json":
+		err = ParsePostman(scanFile.StoragePath.String, scanFile.ID, db)
+	case "openapi_json", "openapi_yaml":
+		err = ParseOpenAPI(scanFile.StoragePath.String, scanFile.ID, db)
 	default:
 		err = fmt.Errorf("unknown file type: %s", scanFile.Type)
 	}

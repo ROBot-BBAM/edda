@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import api, { setPortReviewed, setURLReviewed } from '../services/api';
+import NotesModal from '../components/NotesModal';
+import RowActionIcons from '../components/RowActionIcons';
 import './HostDetail.css';
 
 interface Host {
@@ -10,6 +11,8 @@ interface Host {
   hostname?: string;
   os?: string;
   reviewed: boolean;
+  note_count: number;
+  note_preview: string;
   created_at: string;
 }
 
@@ -23,6 +26,9 @@ interface Port {
   service_product?: string;
   service_version?: string;
   reviewed: boolean;
+  finding_count: number;
+  note_count: number;
+  note_preview: string;
   created_at: string;
 }
 
@@ -36,6 +42,9 @@ interface URL {
   words?: number;
   lines?: number;
   reviewed: boolean;
+  finding_count: number;
+  note_count: number;
+  note_preview: string;
   created_at: string;
 }
 
@@ -46,12 +55,12 @@ interface HostDetailData {
 }
 
 const HostDetail: React.FC = () => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<HostDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [notesModal, setNotesModal] = useState<{ type: 'host' | 'port' | 'url'; id: string } | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -139,31 +148,6 @@ const HostDetail: React.FC = () => {
 
   return (
     <div className="host-detail-page">
-      <header className="host-detail-header">
-        <div className="container">
-          <div className="header-content">
-            <h1>Edda - Host Detail</h1>
-            <div className="header-actions">
-              <button onClick={() => navigate('/hosts')} className="btn btn-secondary">
-                Back to Hosts
-              </button>
-              <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
-                Dashboard
-              </button>
-              {user?.is_admin && (
-                <button onClick={() => navigate('/admin')} className="btn btn-secondary">
-                  Admin
-                </button>
-              )}
-              <span>Welcome, {user?.email}</span>
-              <button onClick={logout} className="btn btn-secondary">
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="container">
         <div className="host-detail-content">
           <div className="host-info-card card">
@@ -195,8 +179,26 @@ const HostDetail: React.FC = () => {
                 <label>Discovered:</label>
                 <span>{new Date(data.host.created_at).toLocaleString()}</span>
               </div>
+              <div className="info-item host-notes-actions">
+                <label>Notes:</label>
+                <span>
+                  <span className={`note-badge ${(data.host.note_count ?? 0) > 0 ? 'has-notes' : ''}`} title={data.host.note_preview || undefined}>
+                    {(data.host.note_count ?? 0) > 0 ? data.host.note_count : '0'}
+                  </span>
+                  <RowActionIcons onAddNote={() => setNotesModal({ type: 'host', id: data.host.id })} />
+                </span>
+              </div>
             </div>
           </div>
+
+          {notesModal && (
+            <NotesModal
+              entityType={notesModal.type}
+              entityId={notesModal.id}
+              onClose={() => setNotesModal(null)}
+              onAdded={() => id && fetchHostDetail(id)}
+            />
+          )}
 
           <div className="section">
             <h3>Open Ports ({data.ports.length})</h3>
@@ -207,18 +209,21 @@ const HostDetail: React.FC = () => {
             ) : (
               <div className="card">
                 <table className="ports-table">
-                  <thead>
-                    <tr>
-                      <th>Port</th>
-                      <th>Protocol</th>
-                      <th>State</th>
-                      <th>Service</th>
-                      <th>Product</th>
-                      <th>Version</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <thead>
+                  <tr>
+                    <th>Port</th>
+                    <th>Protocol</th>
+                    <th>State</th>
+                    <th>Service</th>
+                    <th>Product</th>
+                    <th>Version</th>
+                    <th>Findings</th>
+                    <th>Notes</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                     {data.ports.map((port) => (
                       <tr key={port.id}>
                         <td className="port-number">{port.port}</td>
@@ -227,6 +232,14 @@ const HostDetail: React.FC = () => {
                         <td>{port.service_name || '-'}</td>
                         <td>{port.service_product || '-'}</td>
                         <td>{port.service_version || '-'}</td>
+                        <td>
+                          <span className={`finding-badge ${(port.finding_count ?? 0) > 0 ? 'has-findings' : ''}`} title={`${port.finding_count ?? 0} finding(s)`}>
+                            {(port.finding_count ?? 0) > 0 ? (port.finding_count ?? 0) : '—'}
+                          </span>
+                        </td>
+                        <td title={port.note_preview || undefined}>
+                          <span className={`note-badge ${(port.note_count ?? 0) > 0 ? 'has-notes' : ''}`}>{(port.note_count ?? 0) > 0 ? port.note_count : '—'}</span>
+                        </td>
                         <td>
                           <button
                             type="button"
@@ -237,6 +250,12 @@ const HostDetail: React.FC = () => {
                           >
                             {togglingId === port.id ? '…' : port.reviewed ? 'Reviewed' : 'Unreviewed'}
                           </button>
+                        </td>
+                        <td className="row-actions-cell">
+                          <RowActionIcons
+                            onAddNote={() => setNotesModal({ type: 'port', id: port.id })}
+                            onAddFinding={() => navigate(`/findings?host_id=${data.host.id}&port_id=${port.id}`)}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -255,18 +274,21 @@ const HostDetail: React.FC = () => {
             ) : (
               <div className="card">
                 <table className="urls-table">
-                  <thead>
-                    <tr>
-                      <th>URL</th>
-                      <th>Method</th>
-                      <th>Status</th>
-                      <th>Length</th>
-                      <th>Words</th>
-                      <th>Lines</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <thead>
+                  <tr>
+                    <th>URL</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Length</th>
+                    <th>Words</th>
+                    <th>Lines</th>
+                    <th>Findings</th>
+                    <th>Notes</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                     {data.urls.map((urlObj) => (
                       <tr key={urlObj.id}>
                         <td className="url-cell">
@@ -286,6 +308,14 @@ const HostDetail: React.FC = () => {
                         <td>{urlObj.words?.toLocaleString() || '-'}</td>
                         <td>{urlObj.lines?.toLocaleString() || '-'}</td>
                         <td>
+                          <span className={`finding-badge ${(urlObj.finding_count ?? 0) > 0 ? 'has-findings' : ''}`} title={`${urlObj.finding_count ?? 0} finding(s)`}>
+                            {(urlObj.finding_count ?? 0) > 0 ? (urlObj.finding_count ?? 0) : '—'}
+                          </span>
+                        </td>
+                        <td title={urlObj.note_preview || undefined}>
+                          <span className={`note-badge ${(urlObj.note_count ?? 0) > 0 ? 'has-notes' : ''}`}>{(urlObj.note_count ?? 0) > 0 ? urlObj.note_count : '—'}</span>
+                        </td>
+                        <td>
                           <button
                             type="button"
                             className={`status-badge status-badge-btn ${urlObj.reviewed ? 'reviewed' : 'unreviewed'}`}
@@ -295,6 +325,12 @@ const HostDetail: React.FC = () => {
                           >
                             {togglingId === urlObj.id ? '…' : urlObj.reviewed ? 'Reviewed' : 'Unreviewed'}
                           </button>
+                        </td>
+                        <td className="row-actions-cell">
+                          <RowActionIcons
+                            onAddNote={() => setNotesModal({ type: 'url', id: urlObj.id })}
+                            onAddFinding={() => navigate(`/findings?host_id=${data.host.id}&url_id=${urlObj.id}`)}
+                          />
                         </td>
                       </tr>
                     ))}

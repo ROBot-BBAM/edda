@@ -206,29 +206,6 @@ func ParseFFufCSV(filePath string, scanFileID uuid.UUID, db *database.DB) error 
 	return nil
 }
 
-// getOrCreateHostForURL returns the host ID for the given hostname (from a URL).
-// Tries ip_address first (ffuf-created or nmap by IP), then hostname (nmap host with that hostname),
-// then creates a new host so the host count updates and URLs link to it.
-func getOrCreateHostForURL(db *database.DB, hostname string, scanFileID uuid.UUID) *uuid.UUID {
-	// Match host by ip_address (covers: nmap host by IP, or ffuf-created host keyed by hostname)
-	host, err := db.GetHostByIP(hostname)
-	if err == nil && host != nil {
-		return &host.ID
-	}
-	// Match by hostname so URLs land on existing nmap host (e.g. ip_address=192.168.1.1, hostname=target.local)
-	host, err = db.GetHostByHostname(hostname)
-	if err == nil && host != nil {
-		return &host.ID
-	}
-	// No existing host; create one so host count updates and URLs have a host to link to.
-	host, err = db.UpsertHost(hostname, hostname, "", scanFileID)
-	if err != nil {
-		log.Printf("Failed to create host for %s: %v", hostname, err)
-		return nil
-	}
-	return &host.ID
-}
-
 func processFFufResult(result FFufResult, scanFileID uuid.UUID, db *database.DB) error {
 	if result.URL == "" {
 		return nil

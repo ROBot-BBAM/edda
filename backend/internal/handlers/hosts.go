@@ -13,12 +13,15 @@ import (
 )
 
 type HostResponse struct {
-	ID                 string  `json:"id"`
-	IPAddress          string  `json:"ip_address"`
-	Hostname           *string `json:"hostname,omitempty"`
-	OS                 *string `json:"os,omitempty"`
-	Reviewed           bool    `json:"reviewed"`
-	CreatedAt          string  `json:"created_at"`
+	ID           string  `json:"id"`
+	IPAddress    string  `json:"ip_address"`
+	Hostname     *string `json:"hostname,omitempty"`
+	OS           *string `json:"os,omitempty"`
+	Reviewed     bool    `json:"reviewed"`
+	FindingCount int     `json:"finding_count"`
+	NoteCount    int     `json:"note_count"`
+	NotePreview  string  `json:"note_preview,omitempty"`
+	CreatedAt    string  `json:"created_at"`
 }
 
 func (h *Handlers) ListHosts(w http.ResponseWriter, r *http.Request) {
@@ -38,9 +41,22 @@ func (h *Handlers) ListHosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hostIDs := make([]uuid.UUID, len(hosts))
+	for i, host := range hosts {
+		hostIDs[i] = host.ID
+	}
+	findingCounts, _ := h.db.CountFindingsByHostIDs(hostIDs)
+	noteCounts, _ := h.db.CountNotesByHostIDs(hostIDs)
+
 	responses := make([]HostResponse, len(hosts))
 	for i, host := range hosts {
-		responses[i] = hostToResponse(host)
+		resp := hostToResponse(host)
+		resp.FindingCount = findingCounts[host.ID]
+		resp.NoteCount = noteCounts[host.ID]
+		if preview, ok := h.db.GetLatestNotePreview(&host.ID, nil, nil, 80); ok {
+			resp.NotePreview = preview
+		}
+		responses[i] = resp
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -85,18 +101,50 @@ func (h *Handlers) GetHost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	portIDs := make([]uuid.UUID, len(ports))
+	for i, p := range ports {
+		portIDs[i] = p.ID
+	}
+	urlIDs := make([]uuid.UUID, len(urls))
+	for i, u := range urls {
+		urlIDs[i] = u.ID
+	}
+	portFindingCounts, _ := h.db.CountFindingsByPortIDs(portIDs)
+	urlFindingCounts, _ := h.db.CountFindingsByURLIDs(urlIDs)
+	portNoteCounts, _ := h.db.CountNotesByPortIDs(portIDs)
+	urlNoteCounts, _ := h.db.CountNotesByURLIDs(urlIDs)
+
 	portResponses := make([]PortResponse, len(ports))
 	for i, port := range ports {
-		portResponses[i] = portToResponse(port)
+		resp := portToResponse(port)
+		resp.FindingCount = portFindingCounts[port.ID]
+		resp.NoteCount = portNoteCounts[port.ID]
+		if preview, ok := h.db.GetLatestNotePreview(nil, &port.ID, nil, 80); ok {
+			resp.NotePreview = preview
+		}
+		portResponses[i] = resp
 	}
 
 	urlResponses := make([]URLResponse, len(urls))
 	for i, urlObj := range urls {
-		urlResponses[i] = urlToResponse(urlObj)
+		resp := urlToResponse(urlObj)
+		resp.FindingCount = urlFindingCounts[urlObj.ID]
+		resp.NoteCount = urlNoteCounts[urlObj.ID]
+		if preview, ok := h.db.GetLatestNotePreview(nil, nil, &urlObj.ID, 80); ok {
+			resp.NotePreview = preview
+		}
+		urlResponses[i] = resp
 	}
 
+	hostResp := hostToResponse(host)
+	if noteCounts, err := h.db.CountNotesByHostIDs([]uuid.UUID{host.ID}); err == nil {
+		hostResp.NoteCount = noteCounts[host.ID]
+	}
+	if preview, ok := h.db.GetLatestNotePreview(&host.ID, nil, nil, 80); ok {
+		hostResp.NotePreview = preview
+	}
 	response := HostDetailResponse{
-		Host:  hostToResponse(host),
+		Host:  hostResp,
 		Ports: portResponses,
 		URLs:  urlResponses,
 	}
@@ -107,10 +155,12 @@ func (h *Handlers) GetHost(w http.ResponseWriter, r *http.Request) {
 
 func hostToResponse(h *database.Host) HostResponse {
 	resp := HostResponse{
-		ID:        h.ID.String(),
-		IPAddress: h.IPAddress,
-		Reviewed:  h.Reviewed,
-		CreatedAt: h.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:           h.ID.String(),
+		IPAddress:    h.IPAddress,
+		Reviewed:     h.Reviewed,
+		FindingCount: 0, // set by caller when building list
+		NoteCount:    0,
+		CreatedAt:    h.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
 	if h.Hostname.Valid {

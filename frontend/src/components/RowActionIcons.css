@@ -1,0 +1,51 @@
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+tr:hover .row-actions {
+  opacity: 1;
+}
+
+/* Touch devices: show actions so they can be tapped */
+@media (hover: none) {
+  .row-actions {
+    opacity: 1;
+  }
+}
+
+.row-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #6c757d;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.row-action-icon:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.row-action-icon:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.4);
+}
+
+/* Keep actions column from collapsing; show icons on hover */
+td.row-actions-cell {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  vertical-align: middle;
+}

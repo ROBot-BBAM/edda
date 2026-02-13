@@ -90,23 +90,6 @@ const Admin: React.FC = () => {
 
   return (
     <div className="admin-page">
-      <header className="projects-header">
-        <div className="container">
-          <div className="header-content">
-            <h1>Edda - Admin</h1>
-            <div className="header-actions">
-              <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
-                Back to Dashboard
-              </button>
-              <span>Welcome, {user?.email}</span>
-              <button onClick={logout} className="btn btn-secondary">
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="container">
         <div className="admin-toolbar">
           <h2>User Management</h2>

@@ -74,21 +74,28 @@ func (h *Handlers) UploadScanFile(w http.ResponseWriter, r *http.Request) {
 	
 	log.Printf("UploadScanFile: File received - filename=%s, size=%d", header.Filename, header.Size)
 
-	// Determine file type from extension
+	// Determine file type from extension (and for JSON, peek content to distinguish Postman/OpenAPI/FFuf)
 	filename := header.Filename
 	ext := strings.ToLower(filepath.Ext(filename))
 	var fileType string
+	var peek []byte
+	const jsonPeekSize = 8192
 
 	switch ext {
 	case ".xml":
 		fileType = "nmap_xml"
 	case ".json":
-		fileType = "ffuf_json"
+		peekBuf := make([]byte, jsonPeekSize)
+		n, _ := file.Read(peekBuf)
+		peek = peekBuf[:n]
+		fileType = detectJSONFileType(peek)
 	case ".csv":
 		fileType = "ffuf_csv"
+	case ".yaml", ".yml":
+		fileType = "openapi_yaml"
 	default:
 		log.Printf("UploadScanFile: Unsupported file type: %s", ext)
-		writeError(w, http.StatusBadRequest, "Unsupported file type. Supported: .xml (nmap), .json (ffuf), .csv (ffuf)")
+		writeError(w, http.StatusBadRequest, "Unsupported file type. Supported: .xml (nmap), .json (ffuf/postman/openapi), .csv (ffuf), .yaml/.yml (openapi)")
 		return
 	}
 
@@ -107,6 +114,14 @@ func (h *Handlers) UploadScanFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer dst.Close()
 
+	if len(peek) > 0 {
+		if _, err := dst.Write(peek); err != nil {
+			log.Printf("UploadScanFile: Failed to write file: %v", err)
+			os.Remove(storagePath)
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to save file: %v", err))
+			return
+		}
+	}
 	if _, err := io.Copy(dst, file); err != nil {
 		log.Printf("UploadScanFile: Failed to copy file: %v", err)
 		os.Remove(storagePath) // Clean up on error
@@ -153,6 +168,27 @@ func (h *Handlers) ListScanFiles(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responses)
+}
+
+// detectJSONFileType peeks at the first bytes of a JSON file to distinguish
+// Postman collection, OpenAPI/Swagger spec, or FFuf results.
+func detectJSONFileType(peek []byte) string {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(peek, &raw); err != nil {
+		return "ffuf_json"
+	}
+	if _, ok := raw["openapi"]; ok {
+		return "openapi_json"
+	}
+	if _, ok := raw["swagger"]; ok {
+		return "openapi_json"
+	}
+	if _, hasInfo := raw["info"]; hasInfo {
+		if _, hasItem := raw["item"]; hasItem {
+			return "postman_json"
+		}
+	}
+	return "ffuf_json"
 }
 
 func scanFileToResponse(sf *database.ScanFile) *ScanFileResponse {

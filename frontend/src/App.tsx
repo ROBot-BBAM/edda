@@ -10,7 +10,9 @@ import HostDetail from './pages/HostDetail';
 import Ports from './pages/Ports';
 import PortDetail from './pages/PortDetail';
 import URLs from './pages/URLs';
+import Findings from './pages/Findings';
 import PrivateRoute from './components/PrivateRoute';
+import AppLayout from './components/AppLayout';
 import './App.css';
 
 function App() {
@@ -21,63 +23,17 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <PrivateRoute>
-                  <Admin />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/hosts"
-              element={
-                <PrivateRoute>
-                  <Hosts />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/hosts/:id"
-              element={
-                <PrivateRoute>
-                  <HostDetail />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/ports"
-              element={
-                <PrivateRoute>
-                  <Ports />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/ports/by-number/:port/:protocol"
-              element={
-                <PrivateRoute>
-                  <PortDetail />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/urls"
-              element={
-                <PrivateRoute>
-                  <URLs />
-                </PrivateRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="admin" element={<Admin />} />
+              <Route path="hosts" element={<Hosts />} />
+              <Route path="hosts/:id" element={<HostDetail />} />
+              <Route path="ports" element={<Ports />} />
+              <Route path="ports/by-number/:port/:protocol" element={<PortDetail />} />
+              <Route path="urls" element={<URLs />} />
+              <Route path="findings" element={<Findings />} />
+            </Route>
           </Routes>
         </div>
       </Router>

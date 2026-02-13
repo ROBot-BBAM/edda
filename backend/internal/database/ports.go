@@ -214,6 +214,7 @@ type PortAggregate struct {
 	ServiceVersion sql.NullString
 	Reviewed      bool // true only when BOOL_AND(reviewed) for this port+protocol
 	HostCount     int
+	FindingCount  int
 }
 
 // ListPortsAggregated optionally filters by search (port number or service name substring) and reviewed.
@@ -222,7 +223,8 @@ func (db *DB) ListPortsAggregated(search string, reviewed *bool) ([]*PortAggrega
 		SELECT port, protocol,
 			MAX(state) AS state, MAX(service_name) AS service_name, MAX(service_product) AS service_product, MAX(service_version) AS service_version,
 			BOOL_AND(reviewed) AS reviewed,
-			COUNT(*) AS host_count
+			COUNT(*) AS host_count,
+			(SELECT COUNT(*) FROM findings f INNER JOIN ports p ON f.port_id = p.id WHERE p.port = ports.port AND p.protocol = ports.protocol) AS finding_count
 		FROM ports
 	`
 	var args []interface{}
@@ -256,6 +258,7 @@ func (db *DB) ListPortsAggregated(search string, reviewed *bool) ([]*PortAggrega
 			&a.ServiceVersion,
 			&a.Reviewed,
 			&a.HostCount,
+			&a.FindingCount,
 		)
 		if err != nil {
 			return nil, err

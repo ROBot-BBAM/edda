@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import api, { setHostReviewed } from '../services/api';
+import api from '../services/api';
+import NotesModal from '../components/NotesModal';
+import RowActionIcons from '../components/RowActionIcons';
 import './Hosts.css';
 
 interface Host {
@@ -10,18 +11,20 @@ interface Host {
   hostname?: string;
   os?: string;
   reviewed: boolean;
+  finding_count: number;
+  note_count: number;
+  note_preview: string;
   created_at: string;
 }
 
 const Hosts: React.FC = () => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [hosts, setHosts] = useState<Host[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'reviewed' | 'unreviewed'>('all');
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [notesModalHostId, setNotesModalHostId] = useState<string | null>(null);
 
   const fetchHosts = useCallback(async () => {
     setLoading(true);
@@ -51,43 +54,8 @@ const Hosts: React.FC = () => {
 
   const filteredHosts = hosts;
 
-  const handleToggleReviewed = async (host: Host) => {
-    if (togglingId === host.id) return;
-    setTogglingId(host.id);
-    try {
-      const updated = await setHostReviewed(host.id, !host.reviewed);
-      setHosts(prev => prev.map(h => (h.id === host.id ? { ...h, reviewed: updated.reviewed } : h)));
-    } catch (err) {
-      console.error('Failed to update host', err);
-    } finally {
-      setTogglingId(null);
-    }
-  };
-
   return (
     <div className="hosts-page">
-      <header className="hosts-header">
-        <div className="container">
-          <div className="header-content">
-            <h1>Edda - Hosts</h1>
-            <div className="header-actions">
-              <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
-                Dashboard
-              </button>
-              {user?.is_admin && (
-                <button onClick={() => navigate('/admin')} className="btn btn-secondary">
-                  Admin
-                </button>
-              )}
-              <span>Welcome, {user?.email}</span>
-              <button onClick={logout} className="btn btn-secondary">
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="container">
         <div className="hosts-content">
           <div className="page-header">
@@ -139,6 +107,8 @@ const Hosts: React.FC = () => {
                     <th>Hostname</th>
                     <th>OS</th>
                     <th>Status</th>
+                    <th>Findings</th>
+                    <th>Notes</th>
                     <th>Discovered</th>
                     <th>Actions</th>
                   </tr>
@@ -150,30 +120,45 @@ const Hosts: React.FC = () => {
                       <td>{host.hostname || '-'}</td>
                       <td>{host.os || '-'}</td>
                       <td>
-                        <button
-                          type="button"
-                          className={`status-badge status-badge-btn ${host.reviewed ? 'reviewed' : 'unreviewed'}`}
-                          onClick={() => handleToggleReviewed(host)}
-                          disabled={togglingId === host.id}
-                          title={host.reviewed ? 'Mark unreviewed' : 'Mark reviewed'}
+                        <span
+                          className={`status-badge ${host.reviewed ? 'reviewed' : 'unreviewed'}`}
+                          aria-label={`Status: ${host.reviewed ? 'Reviewed' : 'Unreviewed'}`}
                         >
-                          {togglingId === host.id ? '…' : host.reviewed ? 'Reviewed' : 'Unreviewed'}
-                        </button>
+                          {host.reviewed ? 'Reviewed' : 'Unreviewed'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`finding-badge ${host.finding_count > 0 ? 'has-findings' : ''}`} title={`${host.finding_count} finding(s)`}>
+                          {host.finding_count > 0 ? host.finding_count : '—'}
+                        </span>
+                      </td>
+                      <td title={host.note_preview || undefined}>
+                        <span className={`note-badge ${(host.note_count || 0) > 0 ? 'has-notes' : ''}`}>
+                          {(host.note_count || 0) > 0 ? host.note_count : '—'}
+                        </span>
                       </td>
                       <td>{new Date(host.created_at).toLocaleString()}</td>
-                      <td>
-                        <button
-                          className="btn btn-sm btn-primary"
-                          onClick={() => navigate(`/hosts/${host.id}`)}
-                        >
-                          View Details
-                        </button>
+                      <td className="row-actions-cell">
+                        <RowActionIcons
+                          onAddNote={() => setNotesModalHostId(host.id)}
+                          onAddFinding={() => navigate(`/findings?host_id=${host.id}`)}
+                          onView={() => navigate(`/hosts/${host.id}`)}
+                          viewLabel="View Details"
+                        />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          )}
+          {notesModalHostId && (
+            <NotesModal
+              entityType="host"
+              entityId={notesModalHostId}
+              onClose={() => setNotesModalHostId(null)}
+              onAdded={fetchHosts}
+            />
           )}
         </div>
       </div>

@@ -111,12 +111,30 @@ func main() {
 			// Data routes (hosts, ports, URLs extracted from scan files)
 			r.Get("/hosts", h.ListHosts)
 			r.Get("/hosts/{id}", h.GetHost)
+			r.Get("/hosts/{id}/notes", h.ListNotesByHost)
 			r.Patch("/hosts/{id}/reviewed", h.SetHostReviewed)
+			r.Post("/notes", h.CreateNote)
 			r.Get("/ports", h.ListPorts)
 			r.Get("/ports/by-number/{port}/{protocol}", h.GetPortByNumber)
+			r.Get("/ports/{id}/notes", h.ListNotesByPort)
 			r.Patch("/ports/{id}/reviewed", h.SetPortReviewed)
 			r.Get("/urls", h.ListURLs)
+			r.Get("/urls/{id}/notes", h.ListNotesByURL)
 			r.Patch("/urls/{id}/reviewed", h.SetURLReviewed)
+
+			// Search (global)
+			r.Get("/search", h.Search)
+
+			// Export (full engagement for AI/narrative)
+			r.Get("/export/narrative", h.ExportNarrative)
+
+			// Findings (vulnerabilities)
+			r.Get("/findings", h.ListFindings)
+			r.Get("/findings/summary", h.GetFindingsSummary)
+			r.Post("/findings", h.CreateFinding)
+			r.Get("/findings/{id}", h.GetFinding)
+			r.Patch("/findings/{id}", h.UpdateFinding)
+			r.Delete("/findings/{id}", h.DeleteFinding)
 
 			// Legacy project routes (kept for compatibility, but will be simplified)
 			r.Route("/projects", func(r chi.Router) {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import api, { listFindings, getFindingsSummary } from '../services/api';
 import './Dashboard.css';
 
 interface ScanFile {
@@ -51,12 +50,15 @@ interface URL {
 }
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [scanFiles, setScanFiles] = useState<ScanFile[]>([]);
   const [hosts, setHosts] = useState<Host[]>([]);
   const [ports, setPorts] = useState<Port[]>([]);
   const [urls, setUrls] = useState<URL[]>([]);
+  const [findingsCount, setFindingsCount] = useState(0);
+  const [findingsSummary, setFindingsSummary] = useState<Record<string, number> | null>(null);
+  const [openFindingsCount, setOpenFindingsCount] = useState(0);
+  const [needsAttention, setNeedsAttention] = useState<Array<{ id: string; title: string; severity: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -65,6 +67,39 @@ const Dashboard: React.FC = () => {
     fetchAllData();
   }, []);
 
+  const fetchFindings = async () => {
+    try {
+      const data = await listFindings();
+      setFindingsCount(Array.isArray(data) ? data.length : 0);
+    } catch (err) {
+      console.error('Failed to fetch findings', err);
+    }
+  };
+
+  const fetchFindingsSummary = async () => {
+    try {
+      const res = await getFindingsSummary();
+      setFindingsSummary(res.by_severity || null);
+      setOpenFindingsCount(res.open_count ?? 0);
+    } catch (err) {
+      console.error('Failed to fetch findings summary', err);
+    }
+  };
+
+  const fetchNeedsAttention = async () => {
+    try {
+      const data = await listFindings({ status: 'open' });
+      const list = Array.isArray(data) ? data : [];
+      const criticalHigh = list
+        .filter((f: { severity: string }) => f.severity === 'critical' || f.severity === 'high')
+        .slice(0, 10)
+        .map((f: { id: string; title: string; severity: string }) => ({ id: f.id, title: f.title, severity: f.severity }));
+      setNeedsAttention(criticalHigh);
+    } catch (err) {
+      console.error('Failed to fetch needs attention', err);
+    }
+  };
+
   const fetchAllData = async () => {
     try {
       await Promise.all([
@@ -72,6 +107,9 @@ const Dashboard: React.FC = () => {
         fetchHosts(),
         fetchPorts(),
         fetchURLs(),
+        fetchFindings(),
+        fetchFindingsSummary(),
+        fetchNeedsAttention(),
       ]);
     } catch (err) {
       console.error('Failed to fetch data', err);
@@ -148,31 +186,45 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-page">
-      <header className="dashboard-header">
-        <div className="container">
-          <div className="header-content">
-            <h1>Edda</h1>
-            <div className="header-actions">
-              {user?.is_admin && (
-                <button onClick={() => navigate('/admin')} className="btn btn-secondary">
-                  Admin
-                </button>
-              )}
-              <span>Welcome, {user?.email}</span>
-              <button onClick={logout} className="btn btn-secondary">
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="container">
         <div className="dashboard-content">
           <h2>Pentest Engagement Dashboard</h2>
           <p className="dashboard-subtitle">
             All scan data is shared across all team members in this engagement.
           </p>
+
+          {hosts.length > 0 && (
+            <div className="dashboard-review-progress">
+              <div className="progress-label">
+                <span>Hosts reviewed</span>
+                <span>{hosts.filter((h) => h.reviewed).length} / {hosts.length}</span>
+              </div>
+              <div className="progress-bar">
+                <div
+                  className="progress-fill"
+                  style={{ width: `${hosts.length ? (100 * hosts.filter((h) => h.reviewed).length) / hosts.length : 0}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {needsAttention.length > 0 && (
+            <div className="dashboard-needs-attention card">
+              <h3>Needs attention</h3>
+              <p className="needs-attention-desc">Critical or high severity findings still open</p>
+              <ul>
+                {needsAttention.map((f) => (
+                  <li key={f.id}>
+                    <span className={`severity-badge severity-${f.severity}`}>{f.severity}</span>
+                    <button type="button" className="needs-attention-link" onClick={() => navigate('/findings')}>{f.title}</button>
+                  </li>
+                ))}
+              </ul>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('/findings')}>
+                View all findings
+              </button>
+            </div>
+          )}
 
           <div className="dashboard-grid">
             <div className="dashboard-card clickable-card" onClick={() => navigate('/hosts')}>
@@ -202,6 +254,24 @@ const Dashboard: React.FC = () => {
               </button>
             </div>
 
+            <div className="dashboard-card clickable-card" onClick={() => navigate('/findings')}>
+              <h3>Findings</h3>
+              <p className="stat-number">{findingsCount}</p>
+              {findingsSummary && (
+                <div className="dashboard-findings-breakdown">
+                  {['critical', 'high', 'medium', 'low'].map((sev) => ((findingsSummary[sev] ?? 0) > 0 ? (
+                    <span key={sev} className={`breakdown-item severity-${sev}`}>{sev}: {findingsSummary[sev]}</span>
+                  ) : null))}
+                </div>
+              )}
+              <p className="stat-label">
+                {openFindingsCount > 0 ? `${openFindingsCount} open` : 'Vulnerabilities &amp; findings'}
+              </p>
+              <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); navigate('/findings'); }}>
+                View Findings
+              </button>
+            </div>
+
             <div className="dashboard-card">
               <h3>Scan Files</h3>
               <p className="stat-number">{scanFiles.length}</p>
@@ -210,7 +280,7 @@ const Dashboard: React.FC = () => {
                 {uploading ? 'Uploading...' : 'Upload Files'}
                 <input
                   type="file"
-                  accept=".xml,.json,.csv"
+                  accept=".xml,.json,.csv,.yaml,.yml"
                   onChange={handleFileUpload}
                   disabled={uploading}
                   style={{ display: 'none' }}
@@ -274,6 +344,7 @@ const Dashboard: React.FC = () => {
               <ul>
                 <li>Upload nmap XML files to discover hosts and ports</li>
                 <li>Upload ffuf JSON/CSV files to discover web paths</li>
+                <li>Upload Postman collections (JSON) or OpenAPI/Swagger specs (JSON or YAML) to import API endpoints</li>
                 <li>Click on the cards above to view detailed lists</li>
                 <li>Filter by reviewed/unreviewed status</li>
               </ul>

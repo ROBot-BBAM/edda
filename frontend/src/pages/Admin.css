@@ -2,6 +2,43 @@
   min-height: 100vh;
 }
 
+.projects-header {
+  background: white;
+  border-bottom: 1px solid #ddd;
+  padding: 15px 0;
+  margin-bottom: 30px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-content h1 {
+  margin: 0;
+  color: #333;
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .admin-toolbar {
   display: flex;
   justify-content: space-between;

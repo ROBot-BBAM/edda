@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import api, { setURLReviewed } from '../services/api';
+import NotesModal from '../components/NotesModal';
+import RowActionIcons from '../components/RowActionIcons';
 import './URLs.css';
 
 interface URL {
@@ -14,13 +15,15 @@ interface URL {
   words?: number;
   lines?: number;
   reviewed: boolean;
+  finding_count: number;
+  note_count: number;
+  note_preview: string;
   created_at: string;
   host_id?: string;
   host?: string;
 }
 
 const URLs: React.FC = () => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [urls, setUrls] = useState<URL[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,7 @@ const URLs: React.FC = () => {
   const [statusInput, setStatusInput] = useState('');
   const [statusQuery, setStatusQuery] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [notesModal, setNotesModal] = useState<{ type: 'url'; id: string } | null>(null);
 
   const fetchURLs = useCallback(async () => {
     setLoading(true);
@@ -93,28 +97,6 @@ const URLs: React.FC = () => {
 
   return (
     <div className="urls-page">
-      <header className="urls-header">
-        <div className="container">
-          <div className="header-content">
-            <h1>Edda - URLs</h1>
-            <div className="header-actions">
-              <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
-                Dashboard
-              </button>
-              {user?.is_admin && (
-                <button onClick={() => navigate('/admin')} className="btn btn-secondary">
-                  Admin
-                </button>
-              )}
-              <span>Welcome, {user?.email}</span>
-              <button onClick={logout} className="btn btn-secondary">
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="container">
         <div className="urls-content">
           <div className="page-header">
@@ -177,8 +159,11 @@ const URLs: React.FC = () => {
                     <th>Length</th>
                     <th>Words</th>
                     <th>Lines</th>
+                    <th>Findings</th>
+                    <th>Notes</th>
                     <th>Review Status</th>
                     <th>Discovered</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -218,6 +203,14 @@ const URLs: React.FC = () => {
                       <td>{urlObj.words?.toLocaleString() || '-'}</td>
                       <td>{urlObj.lines?.toLocaleString() || '-'}</td>
                       <td>
+                        <span className={`finding-badge ${(urlObj.finding_count ?? 0) > 0 ? 'has-findings' : ''}`} title={`${urlObj.finding_count ?? 0} finding(s)`}>
+                          {(urlObj.finding_count ?? 0) > 0 ? (urlObj.finding_count ?? 0) : '—'}
+                        </span>
+                      </td>
+                      <td title={urlObj.note_preview || undefined}>
+                        <span className={`note-badge ${(urlObj.note_count ?? 0) > 0 ? 'has-notes' : ''}`}>{(urlObj.note_count ?? 0) > 0 ? urlObj.note_count : '—'}</span>
+                      </td>
+                      <td>
                         <button
                           type="button"
                           className={`status-badge status-badge-btn ${urlObj.reviewed ? 'reviewed' : 'unreviewed'}`}
@@ -229,11 +222,25 @@ const URLs: React.FC = () => {
                         </button>
                       </td>
                       <td>{new Date(urlObj.created_at).toLocaleString()}</td>
+                      <td className="row-actions-cell">
+                        <RowActionIcons
+                          onAddNote={() => setNotesModal({ type: 'url', id: urlObj.id })}
+                          onAddFinding={() => navigate(urlObj.host_id ? `/findings?url_id=${urlObj.id}&host_id=${urlObj.host_id}` : `/findings?url_id=${urlObj.id}`)}
+                        />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          )}
+          {notesModal && (
+            <NotesModal
+              entityType="url"
+              entityId={notesModal.id}
+              onClose={() => setNotesModal(null)}
+              onAdded={fetchURLs}
+            />
           )}
         </div>
       </div>

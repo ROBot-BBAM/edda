@@ -23,6 +23,9 @@ type URLResponse struct {
 	Words         *int    `json:"words,omitempty"`
 	Lines         *int    `json:"lines,omitempty"`
 	Reviewed      bool    `json:"reviewed"`
+	FindingCount  int     `json:"finding_count"`
+	NoteCount     int     `json:"note_count"`
+	NotePreview   string  `json:"note_preview,omitempty"`
 	CreatedAt     string  `json:"created_at"`
 	HostID        *string `json:"host_id,omitempty"`
 	Host          string  `json:"host"` // display: ip_address or hostname, empty if no host
@@ -51,6 +54,13 @@ func (h *Handlers) ListURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	urlIDs := make([]uuid.UUID, len(urls))
+	for i, u := range urls {
+		urlIDs[i] = u.ID
+	}
+	findingCounts, _ := h.db.CountFindingsByURLIDs(urlIDs)
+	noteCounts, _ := h.db.CountNotesByURLIDs(urlIDs)
+
 	// Build host display map (host_id -> display string) so we can show host on each URL
 	hostDisplay := make(map[string]string)
 	for _, u := range urls {
@@ -73,6 +83,11 @@ func (h *Handlers) ListURLs(w http.ResponseWriter, r *http.Request) {
 	responses := make([]URLResponse, len(urls))
 	for i, u := range urls {
 		responses[i] = urlToResponse(u)
+		responses[i].FindingCount = findingCounts[u.ID]
+		responses[i].NoteCount = noteCounts[u.ID]
+		if preview, ok := h.db.GetLatestNotePreview(nil, nil, &u.ID, 80); ok {
+			responses[i].NotePreview = preview
+		}
 		if u.HostID.Valid {
 			idStr := u.HostID.UUID.String()
 			responses[i].HostID = &idStr
@@ -86,12 +101,14 @@ func (h *Handlers) ListURLs(w http.ResponseWriter, r *http.Request) {
 
 func urlToResponse(u *database.URL) URLResponse {
 	resp := URLResponse{
-		ID:        u.ID.String(),
-		URL:       u.URL,
-		Path:      u.Path,
-		Method:    u.Method,
-		Reviewed:  u.Reviewed,
-		CreatedAt: u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:           u.ID.String(),
+		URL:          u.URL,
+		Path:         u.Path,
+		Method:       u.Method,
+		Reviewed:     u.Reviewed,
+		FindingCount: 0, // set by caller when building list
+		NoteCount:    0,
+		CreatedAt:    u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
 	if u.StatusCode.Valid {

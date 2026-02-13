@@ -1,0 +1,333 @@
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f0f2f5;
+}
+
+.app-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, #1a1d24 0%, #252a33 100%);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.app-nav-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.app-nav-logo {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-decoration: none;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.app-nav-logo:hover {
+  opacity: 0.9;
+  color: #e0e4ea;
+}
+
+.app-nav-search {
+  position: relative;
+  flex: 1;
+  max-width: 280px;
+  min-width: 0;
+}
+
+.app-nav-search-input {
+  width: 100%;
+  padding: 8px 28px 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.app-nav-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.app-nav-search-input:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.app-nav-search-spinner {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: app-spin 0.6s linear infinite;
+}
+
+@keyframes app-spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+.app-nav-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  max-height: 360px;
+  overflow-y: auto;
+  z-index: 200;
+}
+
+.search-group {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.search-group:last-child {
+  border-bottom: none;
+}
+
+.search-group-label {
+  padding: 4px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6c757d;
+}
+
+.search-hit {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-hit:hover {
+  background: #f0f2f5;
+}
+
+.search-hit-severity {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.search-hit-severity.severity-critical { background: #721c24; color: #fff; }
+.search-hit-severity.severity-high { background: #f8d7da; color: #721c24; }
+.search-hit-severity.severity-medium { background: #fff3cd; color: #856404; }
+.search-hit-severity.severity-low { background: #e7f3ff; color: #0c5460; }
+
+.search-empty {
+  padding: 12px;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.app-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
+
+.app-nav-link {
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.app-nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.app-nav-link.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.app-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.app-nav-export-dropdown {
+  position: relative;
+}
+
+.app-nav-export-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-nav-export-trigger .export-caret {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.app-nav-export {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.app-nav-export:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.app-nav-export:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.app-nav-export-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.app-nav-export-item {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  color: #333;
+}
+
+.app-nav-export-item:hover {
+  background: #f0f2f5;
+}
+
+.app-nav-user {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-nav-admin {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.app-nav-logout {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.app-nav-logout:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.app-main {
+  flex: 1;
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+
+@media (max-width: 900px) {
+  .app-nav-inner {
+    flex-wrap: nowrap;
+    padding: 0 12px;
+    gap: 12px;
+    min-width: 0;
+  }
+  /* Center links scroll horizontally; logo and user+logout stay fixed */
+  .app-nav-links {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    justify-content: flex-start;
+    gap: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-nav-links::-webkit-scrollbar {
+    height: 4px;
+  }
+  .app-nav-links::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+  }
+  .app-nav-right {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .app-nav-link {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  .app-nav-user {
+    max-width: 120px;
+  }
+}

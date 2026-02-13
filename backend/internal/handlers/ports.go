@@ -14,16 +14,19 @@ import (
 )
 
 type PortResponse struct {
-	ID             string  `json:"id"`
-	HostID         string  `json:"host_id"`
-	Port           int     `json:"port"`
-	Protocol       string  `json:"protocol"`
-	State          *string `json:"state,omitempty"`
-	ServiceName    *string `json:"service_name,omitempty"`
+	ID            string  `json:"id"`
+	HostID        string  `json:"host_id"`
+	Port          int     `json:"port"`
+	Protocol      string  `json:"protocol"`
+	State         *string `json:"state,omitempty"`
+	ServiceName   *string `json:"service_name,omitempty"`
 	ServiceProduct *string `json:"service_product,omitempty"`
 	ServiceVersion *string `json:"service_version,omitempty"`
-	Reviewed       bool    `json:"reviewed"`
-	CreatedAt      string  `json:"created_at"`
+	Reviewed      bool    `json:"reviewed"`
+	FindingCount  int     `json:"finding_count"`
+	NoteCount     int     `json:"note_count"`
+	NotePreview   string  `json:"note_preview,omitempty"`
+	CreatedAt     string  `json:"created_at"`
 }
 
 // PortAggregateResponse is one row per (port, protocol); reviewed is true only when all host-ports are reviewed.
@@ -36,14 +39,16 @@ type PortAggregateResponse struct {
 	ServiceVersion *string `json:"service_version,omitempty"`
 	Reviewed       bool    `json:"reviewed"`
 	HostCount      int     `json:"host_count"`
+	FindingCount   int     `json:"finding_count"`
 }
 
 func portAggregateToResponse(a *database.PortAggregate) PortAggregateResponse {
 	resp := PortAggregateResponse{
-		Port:      a.Port,
-		Protocol:  a.Protocol,
-		Reviewed:  a.Reviewed,
-		HostCount: a.HostCount,
+		Port:         a.Port,
+		Protocol:     a.Protocol,
+		Reviewed:     a.Reviewed,
+		HostCount:    a.HostCount,
+		FindingCount: a.FindingCount,
 	}
 	if a.State.Valid {
 		resp.State = &a.State.String
@@ -88,12 +93,14 @@ func (h *Handlers) ListPorts(w http.ResponseWriter, r *http.Request) {
 
 func portToResponse(p *database.Port) PortResponse {
 	resp := PortResponse{
-		ID:       p.ID.String(),
-		HostID:   p.HostID.String(),
-		Port:     p.Port,
-		Protocol: p.Protocol,
-		Reviewed: p.Reviewed,
-		CreatedAt: p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:           p.ID.String(),
+		HostID:       p.HostID.String(),
+		Port:         p.Port,
+		Protocol:     p.Protocol,
+		Reviewed:     p.Reviewed,
+		FindingCount: 0, // set by caller when building host detail
+		NoteCount:    0,
+		CreatedAt:    p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
 	if p.State.Valid {
@@ -137,6 +144,9 @@ type HostPortRowResponse struct {
 	Host         HostResponse `json:"host"`
 	PortID       string      `json:"port_id"`
 	PortReviewed bool        `json:"port_reviewed"`
+	FindingCount int         `json:"finding_count"`
+	NoteCount    int         `json:"note_count"`
+	NotePreview  string      `json:"note_preview,omitempty"`
 }
 
 func (h *Handlers) GetPortByNumber(w http.ResponseWriter, r *http.Request) {
@@ -161,6 +171,12 @@ func (h *Handlers) GetPortByNumber(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "Port not found")
 		return
 	}
+
+	portIDs := make([]uuid.UUID, len(hostRows))
+	for i := range hostRows {
+		portIDs[i] = hostRows[i].PortID
+	}
+	findingCounts, _ := h.db.CountFindingsByPortIDs(portIDs)
 
 	// Aggregated reviewed: true only when all host-ports are reviewed
 	allReviewed := true
@@ -189,12 +205,21 @@ func (h *Handlers) GetPortByNumber(w http.ResponseWriter, r *http.Request) {
 		portResp.ServiceVersion = &portInfo.ServiceVersion.String
 	}
 
+	portNoteCounts, _ := h.db.CountNotesByPortIDs(portIDs)
 	hostResponses := make([]HostPortRowResponse, len(hostRows))
 	for i, row := range hostRows {
+		noteCount := portNoteCounts[row.PortID]
+		notePreview := ""
+		if preview, ok := h.db.GetLatestNotePreview(nil, &row.PortID, nil, 80); ok {
+			notePreview = preview
+		}
 		hostResponses[i] = HostPortRowResponse{
 			Host:         hostToResponse(row.Host),
 			PortID:       row.PortID.String(),
 			PortReviewed: row.PortReviewed,
+			FindingCount: findingCounts[row.PortID],
+			NoteCount:    noteCount,
+			NotePreview:  notePreview,
 		}
 	}
 

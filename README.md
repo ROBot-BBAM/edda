@@ -47,9 +47,12 @@ Edda is a web application for managing and tracking pentest scan data. It allows
    - Health check: http://localhost:8080/healthz
 
 4. **Create your first account**:
-   - Navigate to http://localhost:3000/register
-   - Register with an email and password
-   - You'll be automatically logged in
+   - Check the logs for you admin password
+   ```bash
+   docker logs edda-backend
+   ```
+   - Login with the admin email and password
+   - Create desired users
 
 ## Local Development Setup
 
@@ -141,7 +144,6 @@ edda/
 ## API Endpoints
 
 ### Authentication
-- `POST /api/register` - Register a new user
 - `POST /api/login` - Login and get JWT token
 - `GET /api/me` - Get current user info (protected)
 
@@ -177,15 +179,15 @@ See `backend/internal/database/migrations/001_initial_schema.up.sql` for the ful
 
 ## Development Roadmap
 
-- [ ] Implement nmap XML parser
-- [ ] Implement ffuf JSON/CSV parser
-- [ ] File upload endpoint and UI
-- [ ] Hosts list view with review toggles
-- [ ] Ports list view with review toggles
-- [ ] URLs list view with review toggles
-- [ ] Filtering and search functionality
-- [ ] Project statistics dashboard
-- [ ] Export functionality
+- [x] Implement nmap XML parser
+- [x] Implement ffuf JSON/CSV parser
+- [x] File upload endpoint and UI
+- [x] Hosts list view with review toggles
+- [x] Ports list view with review toggles
+- [x] URLs list view with review toggles
+- [x] Filtering and search functionality
+- [x] Project statistics dashboard
+- [x] Export functionality
 
 ## Contributing
 
@@ -196,4 +198,4 @@ See `backend/internal/database/migrations/001_initial_schema.up.sql` for the ful
 
 ## License
 
-[Add your license here]
+MIT License

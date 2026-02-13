@@ -57,9 +57,9 @@ COPY --from=builder /app/bin/server .
 # Copy init script
 COPY --from=init-builder /app/bin/init-admin .
 
-# Copy wait script
+# Copy wait script (strip CR so it works when repo was cloned on Windows with CRLF)
 COPY scripts/wait-for-db.sh /app/wait-for-db.sh
-RUN chmod +x /app/wait-for-db.sh
+RUN sed -i 's/\r$//' /app/wait-for-db.sh && chmod +x /app/wait-for-db.sh
 
 EXPOSE 8080
 
